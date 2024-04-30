@@ -1,29 +1,27 @@
 const {getUser}=require('../service/auth')
 
-async function restrictToLoggedInUserOnly(req,res,next){
-    console.log(req)
-    const userid=req.headers["authorization"];
-    if(!userid) return res.redirect('/login')
+function checkForAuthentication(req,res,next){
+    const tokenCookie=req?.cookies.token;
 
-    const token= userid.split("Bearer ")[1]
-    const user=getUser(token)
-    if(!user) return res.redirect('/login')
+    if(!tokenCookie) return next();
 
-
-    req.user=user
-    next();
-};
-
-
-async function checkAuth(req,res,next){
-    const userid=req.headers["authorization"];
-    const token= userid.split("Bearer ")[1]
+    
+        
+    const token= tokenCookie   
     const user=getUser(token)
     req.user=user
-    next();
-};
+    return next();
+}
+
+function restrictTo(roles){
+    return function (req,res,next){
+        if(!req.user) return res.redirect("/login")
+
+        if(!roles.includes(req.user.role)) return res.end("unacuthz")
+
+        return next();
+    }
+}
 
 
-
-
-module.exports={restrictToLoggedInUserOnly,checkAuth}
+module.exports={checkForAuthentication,restrictTo}
